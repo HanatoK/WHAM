@@ -583,10 +583,15 @@ bool HistogramFiles::store(const vector<double>& pos, const string& data) {
 void HistogramFiles::saveInfo(const string& filename) const {
     ofstream ofs_info(filename.c_str());
     vector<double> pos(mNDim, 0.0);
+    size_t addr = 0;
     for (size_t i = 0; i < mGridSize; ++i) {
-        ofs_info << mFilenames[i] << " ";
         for (size_t j = 0; j < mNDim; ++j) {
-            ofs_info << mPointTable[j][i] << " ";
+            pos[j] = mPointTable[j][i];
+        }
+        address(pos, addr);
+        ofs_info << mFilenames[addr] << " ";
+        for (size_t j = 0; j < mNDim; ++j) {
+            ofs_info << pos[j] << " ";
         }
         ofs_info << '\n';
     }
