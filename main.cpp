@@ -109,22 +109,23 @@ void wham(const Json::Value& obj) {
     const unsigned N = windows.size();
     // Construct biased histograms and potentials
     vector<ReweightHistogram> PiList(N);
-    vector<vector<double>> centers(N, vector<double>(dimension, 0));
-    vector<double> K(N);
+    vector<HistogramValue> potentials(N);
     // Determine line format of the colvars traj file
     for (unsigned i = 0; i < N; ++i) {
         // Get biased distribution from colvars traj file
         PiList[i] = getPibias1D(a1, windows[i]["filename"].asString(), dimension, true);
         // Determine the centers of bias potentials
-        const Json::Value& c_i_config = windows[i]["centers"];
-        if (c_i_config.size() != dimension) {
+        const Json::Value& centers = windows[i]["centers"];
+        if (centers.size() != dimension) {
             cerr << "Dimension mismatches!" << endl;
             std::abort();
         }
+        vector<double> c_i(dimension);
         for (unsigned j = 0; j < dimension; ++j) {
-            centers[i][j] = c_i_config[j].asDouble();
+            c_i[j] = centers[j].asDouble();
         }
-        K[i] = windows[i]["spring constant"].asDouble();
+        const double k_i = windows[i]["spring constant"].asDouble();
+        potentials[i] = genHarmonicPotential(a1, c_i, k_i);
     }
 
     // Total unbiased histogram
@@ -153,14 +154,14 @@ void wham(const Json::Value& obj) {
             num = num + n_j * PiList[j];
             // Compute n_j * exp(-beta (w_j_xi - f_j))
             // w_j_xi is the j-th bias potential at reaction coordinate xi
-            HistogramValue tmp = genHarmonicPotential(a1, centers[j], K[j]);
+            HistogramValue tmp = potentials[j];
             tmp.applyFunction([beta, f_j, n_j](double x){return n_j * std::exp(-beta * (x - f_j));});
             denom = denom + tmp;
         }
         Pu = num / denom;
         for (unsigned j = 0; j < N; ++j) {
             // Compute exp(-beta (w_j_xi))
-            HistogramValue tmp = genHarmonicPotential(a1, centers[j], K[j]);
+            HistogramValue tmp = potentials[j];
             tmp.applyFunction([beta](double x){return std::exp(-beta * x);});
             const vector<double>& raw_p = Pu.getRawData();
             const vector<double>& raw_weight = tmp.getRawData();
