@@ -300,6 +300,7 @@ void HistogramValue::dump() const {
 HistogramValue minus(const HistogramValue& h1, const HistogramValue& h2) {
     HistogramValue h3(h1.mAxes);
     // Assume h1 and h2 have the same axes.
+    #pragma omp parallel for
     for (size_t i = 0; i < h3.mGridSize; ++i) {
         h3.mValue[i] = h1.mValue[i] - h2.mValue[i];
     }
@@ -309,6 +310,7 @@ HistogramValue minus(const HistogramValue& h1, const HistogramValue& h2) {
 HistogramValue multiply(const HistogramValue& h1, const HistogramValue& h2) {
     HistogramValue h3(h1.mAxes);
     // Assume h1 and h2 have the same axes.
+    #pragma omp parallel for
     for (size_t i = 0; i < h3.mGridSize; ++i) {
         h3.mValue[i] = h1.mValue[i] * h2.mValue[i];
     }
@@ -318,6 +320,7 @@ HistogramValue multiply(const HistogramValue& h1, const HistogramValue& h2) {
 HistogramValue add(const HistogramValue& h1, const HistogramValue& h2) {
     HistogramValue h3(h1.mAxes);
     // Assume h1 and h2 have the same axes.
+    #pragma omp parallel for
     for (size_t i = 0; i < h3.mGridSize; ++i) {
         h3.mValue[i] = h1.mValue[i] + h2.mValue[i];
     }
@@ -327,6 +330,7 @@ HistogramValue add(const HistogramValue& h1, const HistogramValue& h2) {
 HistogramValue divide(const HistogramValue& h1, const HistogramValue& h2) {
     HistogramValue h3(h1.mAxes);
     // Assume h1 and h2 have the same axes.
+    #pragma omp parallel for
     for (size_t i = 0; i < h3.mGridSize; ++i) {
         if (h2.mValue[i] != 0) {
             h3.mValue[i] = h1.mValue[i] / h2.mValue[i];
