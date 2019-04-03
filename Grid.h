@@ -155,6 +155,7 @@ public:
     virtual void readFromFile(const string& filename);
     void dump() const;
     void normalize();
+    virtual HistogramValue reduceDimension(const vector<size_t> dims) const;
 protected:
     vector<double>          mValue;
 };
@@ -256,9 +257,12 @@ void HistogramValue::readFromFile(const string& filename) {
     // Initialize table
     fillTable();
     vector<double> pos(mNDim, 0);
-    for (size_t i = 0; i < mGridSize; ++i) {
-        std::getline(ifs_histo, line);
+    size_t data_count = 0;
+    while(std::getline(ifs_histo, line)) {
         splitString(line, token, fields);
+        if (fields.empty()) {
+            continue;
+        }
         if (fields[0].compare("#") != 0) {
             if (fields.size() != (mNDim + 1)) {
                 std::cerr << "Histogram file reads error!" << std::endl;
@@ -270,8 +274,12 @@ void HistogramValue::readFromFile(const string& filename) {
             }
             value = std::stod(fields[mNDim]);
             set(pos, value);
+            ++data_count;
             fields.clear();
         }
+    }
+    if (data_count != mGridSize) {
+        std::cerr << "Histogram file reads error!" << std::endl;
     }
 }
 
@@ -387,6 +395,30 @@ void HistogramValue::normalize() {
     if (factor > 0) {
         applyFunction([factor](double x){return x / factor;});
     }
+}
+
+HistogramValue HistogramValue::reduceDimension(const vector<size_t> new_dims) const {
+    vector<Axis> new_ax;
+    for (size_t i = 0; i < new_dims.size(); ++i) {
+        new_ax.push_back(mAxes.at(new_dims[i]));
+    }
+    HistogramValue new_hist(new_ax);
+    vector<double> pos(mNDim, 0.0);
+    vector<double> new_pos(new_hist.getDimension(), 0.0);
+    for (size_t i = 0; i < mGridSize; ++i) {
+        double val = 0;
+        double new_val = 0;
+        for (size_t j = 0; j < mNDim; ++j) {
+            pos[j] = mPointTable[j][i];
+        }
+        for (size_t k = 0; k < new_hist.getDimension(); ++k) {
+            new_pos[k] = pos[new_dims[k]];
+        }
+        get(pos, val);
+        new_hist.get(new_pos, new_val);
+        new_hist.set(new_pos, new_val + val);
+    }
+    return new_hist;
 }
 
 class ReweightHistogram: public HistogramValue
