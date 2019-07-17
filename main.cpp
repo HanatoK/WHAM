@@ -143,11 +143,13 @@ void wham(const Json::Value& obj) {
     vector<double> F_old(N, 0);
 
     // WHAM iteration
+    HistogramValue num(a1);
+    HistogramValue denom(a1);
     for (int iter = 0; iter < maxIteration; ++iter) {
         // Backup old F value
         F_old = F;
-        HistogramValue num(a1);
-        HistogramValue denom(a1);
+        num.clear();
+        denom.clear();
         for (unsigned j = 0; j < N; ++j) {
             double f_j = F[j];
             auto n_j = PiList[j].getTotalCount();

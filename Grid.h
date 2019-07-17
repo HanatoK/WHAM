@@ -10,6 +10,7 @@
 #include <fstream>
 #include <cstdlib>
 #include <iostream>
+#include <execution>
 
 #include "Axis.h"
 #include "Tools.h"
@@ -155,6 +156,7 @@ public:
     virtual void readFromFile(const string& filename);
     void dump() const;
     void normalize();
+    virtual void clear();
     virtual HistogramValue reduceDimension(const vector<size_t> dims) const;
 protected:
     vector<double>          mValue;
@@ -308,42 +310,28 @@ void HistogramValue::dump() const {
 HistogramValue minus(const HistogramValue& h1, const HistogramValue& h2) {
     HistogramValue h3(h1.mAxes);
     // Assume h1 and h2 have the same axes.
-    #pragma omp parallel for
-    for (size_t i = 0; i < h3.mGridSize; ++i) {
-        h3.mValue[i] = h1.mValue[i] - h2.mValue[i];
-    }
+    std::transform(std::execution::par, h1.mValue.begin(), h1.mValue.end(), h2.mValue.begin(), h3.mValue.begin(), std::minus<double>());
     return h3;
 }
 
 HistogramValue multiply(const HistogramValue& h1, const HistogramValue& h2) {
     HistogramValue h3(h1.mAxes);
     // Assume h1 and h2 have the same axes.
-    #pragma omp parallel for
-    for (size_t i = 0; i < h3.mGridSize; ++i) {
-        h3.mValue[i] = h1.mValue[i] * h2.mValue[i];
-    }
+    std::transform(std::execution::par, h1.mValue.begin(), h1.mValue.end(), h2.mValue.begin(), h3.mValue.begin(), std::multiplies<double>());
     return h3;
 }
 
 HistogramValue add(const HistogramValue& h1, const HistogramValue& h2) {
     HistogramValue h3(h1.mAxes);
     // Assume h1 and h2 have the same axes.
-    #pragma omp parallel for
-    for (size_t i = 0; i < h3.mGridSize; ++i) {
-        h3.mValue[i] = h1.mValue[i] + h2.mValue[i];
-    }
+    std::transform(std::execution::par, h1.mValue.begin(), h1.mValue.end(), h2.mValue.begin(), h3.mValue.begin(), std::plus<double>());
     return h3;
 }
 
 HistogramValue divide(const HistogramValue& h1, const HistogramValue& h2) {
     HistogramValue h3(h1.mAxes);
     // Assume h1 and h2 have the same axes.
-    #pragma omp parallel for
-    for (size_t i = 0; i < h3.mGridSize; ++i) {
-        if (h2.mValue[i] != 0) {
-            h3.mValue[i] = h1.mValue[i] / h2.mValue[i];
-        }
-    }
+    std::transform(std::execution::par, h1.mValue.begin(), h1.mValue.end(), h2.mValue.begin(), h3.mValue.begin(), std::divides<double>());
     return h3;
 }
 
@@ -376,9 +364,7 @@ HistogramValue operator/(const HistogramValue& h1, const HistogramValue& h2) {
 }
 
 void HistogramValue::applyFunction(std::function<double(double)> f) {
-    for (auto it = mValue.begin(); it != mValue.end(); ++it) {
-        (*it) = f(*it);
-    }
+    std::transform(std::execution::par, mValue.begin(), mValue.end(), mValue.begin(), f);
 }
 
 vector<double>& HistogramValue::getRawData() {
@@ -395,6 +381,10 @@ void HistogramValue::normalize() {
     if (factor > 0) {
         applyFunction([factor](double x){return x / factor;});
     }
+}
+
+void HistogramValue::clear() {
+    mValue.assign(mGridSize, 0.0);
 }
 
 HistogramValue HistogramValue::reduceDimension(const vector<size_t> new_dims) const {
