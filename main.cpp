@@ -145,34 +145,39 @@ void wham(const Json::Value& obj) {
     // WHAM iteration
     HistogramValue num(a1);
     HistogramValue denom(a1);
+    HistogramValue potential_tmp(a1);
     for (int iter = 0; iter < maxIteration; ++iter) {
-        // Backup old F value
-        F_old = F;
         num.clear();
         denom.clear();
+        potential_tmp.clear();
         for (unsigned j = 0; j < N; ++j) {
-            double f_j = F[j];
+            // Backup old F value
+            const double& f_j = F[j];
+            F_old[j] = f_j;
             auto n_j = PiList[j].getTotalCount();
-            num = num + n_j * PiList[j];
+            num += n_j * PiList[j];
             // Compute n_j * exp(-beta (w_j_xi - f_j))
             // w_j_xi is the j-th bias potential at reaction coordinate xi
-            HistogramValue tmp = potentials[j];
-            tmp.applyFunction([beta, f_j, n_j](double x){return n_j * std::exp(-beta * (x - f_j));});
-            denom = denom + tmp;
+//             potential_tmp = potentials[j];
+//             tmp.applyFunction([beta, f_j, n_j](double x){return n_j * std::exp(-beta * (x - f_j));});
+            std::transform(std::execution::par, potentials[j].begin(), potentials[j].end(), potential_tmp.begin(), [beta, f_j, n_j](double x){return n_j * std::exp(-beta * (x - f_j));});
+            denom += potential_tmp;
         }
         Pu = num / denom;
         for (unsigned j = 0; j < N; ++j) {
             // Compute exp(-beta (w_j_xi))
-            HistogramValue tmp = potentials[j];
-            tmp.applyFunction([beta](double x){return std::exp(-beta * x);});
+//             HistogramValue tmp = potentials[j];
+//             tmp.applyFunction([beta](double x){return std::exp(-beta * x);});
+            std::transform(std::execution::par, potentials[j].begin(), potentials[j].end(), potential_tmp.begin(), [beta](double x){return std::exp(-beta * x);});
             const vector<double>& raw_p = Pu.getRawData();
-            const vector<double>& raw_weight = tmp.getRawData();
+            const vector<double>& raw_weight = potential_tmp.getRawData();
             // Compute integral ∫Pu(xi)exp(-beta (w_j_xi))dxi
             // which is exp(-beta * f_j)
             double integral = 0;
-            for (size_t i = 0; i < raw_p.size(); ++i) {
-                integral += raw_p[i] * raw_weight[i];
-            }
+//             for (size_t i = 0; i < raw_p.size(); ++i) {
+//                 integral += raw_p[i] * raw_weight[i];
+//             }
+            integral = std::transform_reduce(std::execution::par, raw_p.begin(), raw_p.end(), raw_weight.begin(), double(0.0));
             F[j] = -kbt * std::log(integral);
         }
         // Measure convergence of WHAM
@@ -184,7 +189,7 @@ void wham(const Json::Value& obj) {
         fprintf(outfile_F, "\n");
         if (error < tolerance) {
             break;
-        } 
+        }
         if (iter == maxIteration - 1) {
             cout << "Warning: Maximum steps of iteration reach!" << '\n';
             if (error >= tolerance) {

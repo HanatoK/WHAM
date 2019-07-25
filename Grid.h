@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <execution>
+#include <iterator>
 
 #include "Axis.h"
 #include "Tools.h"
@@ -149,6 +150,10 @@ public:
     friend HistogramValue operator*(double x, const HistogramValue& h2);
     friend HistogramValue operator*(const HistogramValue& h1, double x);
     friend HistogramValue operator/(const HistogramValue& h1, const HistogramValue& h2);
+    HistogramValue& operator+=(const HistogramValue& rhs);
+    HistogramValue& operator-=(const HistogramValue& rhs);
+    HistogramValue& operator*=(const HistogramValue& rhs);
+    HistogramValue& operator/=(const HistogramValue& rhs);
     void applyFunction(std::function<double(double)> f);
     vector<double>& getRawData();
     const vector<double>& getRawData() const;
@@ -158,6 +163,12 @@ public:
     void normalize();
     virtual void clear();
     virtual HistogramValue reduceDimension(const vector<size_t> dims) const;
+    vector<double>::iterator begin() {return mValue.begin();}
+    vector<double>::const_iterator begin() const {return mValue.begin();}
+    vector<double>::const_iterator cbegin() const {return mValue.cbegin();}
+    vector<double>::iterator end() {return mValue.end();}
+    vector<double>::const_iterator end() const {return mValue.end();}
+    vector<double>::const_iterator cend() const {return mValue.cend();}
 protected:
     vector<double>          mValue;
 };
@@ -363,6 +374,26 @@ HistogramValue operator/(const HistogramValue& h1, const HistogramValue& h2) {
     return divide(h1, h2);
 }
 
+HistogramValue& HistogramValue::operator+=(const HistogramValue& rhs) {
+    std::transform(std::execution::par, this->mValue.begin(), this->mValue.end(), rhs.mValue.begin(), this->mValue.begin(), std::plus<double>());
+    return *this;
+}
+
+HistogramValue& HistogramValue::operator-=(const HistogramValue& rhs) {
+    std::transform(std::execution::par, this->mValue.begin(), this->mValue.end(), rhs.mValue.begin(), this->mValue.begin(), std::minus<double>());
+    return *this;
+}
+
+HistogramValue& HistogramValue::operator*=(const HistogramValue& rhs) {
+    std::transform(std::execution::par, this->mValue.begin(), this->mValue.end(), rhs.mValue.begin(), this->mValue.begin(), std::multiplies<double>());
+    return *this;
+}
+
+HistogramValue& HistogramValue::operator/=(const HistogramValue& rhs) {
+    std::transform(std::execution::par, this->mValue.begin(), this->mValue.end(), rhs.mValue.begin(), this->mValue.begin(), std::divides<double>());
+    return *this;
+}
+
 void HistogramValue::applyFunction(std::function<double(double)> f) {
     std::transform(std::execution::par, mValue.begin(), mValue.end(), mValue.begin(), f);
 }
@@ -451,7 +482,7 @@ bool ReweightHistogram::store(const vector<double>& pos, double value, double we
 }
 
 size_t ReweightHistogram::getTotalCount() const {
-    return std::accumulate(mCount.begin(), mCount.end(), 0);
+    return std::reduce(std::execution::par, mCount.begin(), mCount.end(), size_t(0));
 }
 
 HistogramValue convertToFreeEnergy(const HistogramValue& Punbias, double kbt) {
