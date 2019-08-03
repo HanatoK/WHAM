@@ -141,6 +141,11 @@ void wham(const Json::Value& obj) {
     vector<double> F(N, 0);
     // F_i in last iteration step, used to compute the error
     vector<double> F_old(N, 0);
+    // Total counts
+    vector<double> total_counts(N, 0);
+    for (unsigned j = 0; j < N; ++j) {
+        total_counts[j] = double(PiList[j].getTotalCount());
+    }
 
     // WHAM iteration
     HistogramValue num(a1);
@@ -154,29 +159,22 @@ void wham(const Json::Value& obj) {
             // Backup old F value
             const double& f_j = F[j];
             F_old[j] = f_j;
-            auto n_j = PiList[j].getTotalCount();
+            const double& n_j = total_counts[j];
             num += n_j * PiList[j];
             // Compute n_j * exp(-beta (w_j_xi - f_j))
             // w_j_xi is the j-th bias potential at reaction coordinate xi
-//             potential_tmp = potentials[j];
-//             tmp.applyFunction([beta, f_j, n_j](double x){return n_j * std::exp(-beta * (x - f_j));});
-            std::transform(std::execution::par, potentials[j].begin(), potentials[j].end(), potential_tmp.begin(), [beta, f_j, n_j](double x){return n_j * std::exp(-beta * (x - f_j));});
+            std::transform(std::execution::par_unseq, potentials[j].begin(), potentials[j].end(), potential_tmp.begin(), [beta, f_j, n_j](double x){return n_j * std::exp(-beta * (x - f_j));});
             denom += potential_tmp;
         }
         Pu = num / denom;
         for (unsigned j = 0; j < N; ++j) {
             // Compute exp(-beta (w_j_xi))
-//             HistogramValue tmp = potentials[j];
-//             tmp.applyFunction([beta](double x){return std::exp(-beta * x);});
-            std::transform(std::execution::par, potentials[j].begin(), potentials[j].end(), potential_tmp.begin(), [beta](double x){return std::exp(-beta * x);});
+            std::transform(std::execution::par_unseq, potentials[j].begin(), potentials[j].end(), potential_tmp.begin(), [beta](double x){return std::exp(-beta * x);});
             const vector<double>& raw_p = Pu.getRawData();
             const vector<double>& raw_weight = potential_tmp.getRawData();
             // Compute integral ∫Pu(xi)exp(-beta (w_j_xi))dxi
             // which is exp(-beta * f_j)
             double integral = 0;
-//             for (size_t i = 0; i < raw_p.size(); ++i) {
-//                 integral += raw_p[i] * raw_weight[i];
-//             }
             integral = std::transform_reduce(std::execution::par, raw_p.begin(), raw_p.end(), raw_weight.begin(), double(0.0));
             F[j] = -kbt * std::log(integral);
         }

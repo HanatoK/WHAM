@@ -321,28 +321,28 @@ void HistogramValue::dump() const {
 HistogramValue minus(const HistogramValue& h1, const HistogramValue& h2) {
     HistogramValue h3(h1.mAxes);
     // Assume h1 and h2 have the same axes.
-    std::transform(std::execution::par, h1.mValue.begin(), h1.mValue.end(), h2.mValue.begin(), h3.mValue.begin(), std::minus<double>());
+    std::transform(std::execution::par_unseq, h1.mValue.begin(), h1.mValue.end(), h2.mValue.begin(), h3.mValue.begin(), std::minus<double>());
     return h3;
 }
 
 HistogramValue multiply(const HistogramValue& h1, const HistogramValue& h2) {
     HistogramValue h3(h1.mAxes);
     // Assume h1 and h2 have the same axes.
-    std::transform(std::execution::par, h1.mValue.begin(), h1.mValue.end(), h2.mValue.begin(), h3.mValue.begin(), std::multiplies<double>());
+    std::transform(std::execution::par_unseq, h1.mValue.begin(), h1.mValue.end(), h2.mValue.begin(), h3.mValue.begin(), std::multiplies<double>());
     return h3;
 }
 
 HistogramValue add(const HistogramValue& h1, const HistogramValue& h2) {
     HistogramValue h3(h1.mAxes);
     // Assume h1 and h2 have the same axes.
-    std::transform(std::execution::par, h1.mValue.begin(), h1.mValue.end(), h2.mValue.begin(), h3.mValue.begin(), std::plus<double>());
+    std::transform(std::execution::par_unseq, h1.mValue.begin(), h1.mValue.end(), h2.mValue.begin(), h3.mValue.begin(), std::plus<double>());
     return h3;
 }
 
 HistogramValue divide(const HistogramValue& h1, const HistogramValue& h2) {
     HistogramValue h3(h1.mAxes);
     // Assume h1 and h2 have the same axes.
-    std::transform(std::execution::par, h1.mValue.begin(), h1.mValue.end(), h2.mValue.begin(), h3.mValue.begin(), std::divides<double>());
+    std::transform(std::execution::par_unseq, h1.mValue.begin(), h1.mValue.end(), h2.mValue.begin(), h3.mValue.begin(), std::divides<double>());
     return h3;
 }
 
@@ -375,27 +375,27 @@ HistogramValue operator/(const HistogramValue& h1, const HistogramValue& h2) {
 }
 
 HistogramValue& HistogramValue::operator+=(const HistogramValue& rhs) {
-    std::transform(std::execution::par, this->mValue.begin(), this->mValue.end(), rhs.mValue.begin(), this->mValue.begin(), std::plus<double>());
+    std::transform(std::execution::par_unseq, this->mValue.begin(), this->mValue.end(), rhs.mValue.begin(), this->mValue.begin(), std::plus<double>());
     return *this;
 }
 
 HistogramValue& HistogramValue::operator-=(const HistogramValue& rhs) {
-    std::transform(std::execution::par, this->mValue.begin(), this->mValue.end(), rhs.mValue.begin(), this->mValue.begin(), std::minus<double>());
+    std::transform(std::execution::par_unseq, this->mValue.begin(), this->mValue.end(), rhs.mValue.begin(), this->mValue.begin(), std::minus<double>());
     return *this;
 }
 
 HistogramValue& HistogramValue::operator*=(const HistogramValue& rhs) {
-    std::transform(std::execution::par, this->mValue.begin(), this->mValue.end(), rhs.mValue.begin(), this->mValue.begin(), std::multiplies<double>());
+    std::transform(std::execution::par_unseq, this->mValue.begin(), this->mValue.end(), rhs.mValue.begin(), this->mValue.begin(), std::multiplies<double>());
     return *this;
 }
 
 HistogramValue& HistogramValue::operator/=(const HistogramValue& rhs) {
-    std::transform(std::execution::par, this->mValue.begin(), this->mValue.end(), rhs.mValue.begin(), this->mValue.begin(), std::divides<double>());
+    std::transform(std::execution::par_unseq, this->mValue.begin(), this->mValue.end(), rhs.mValue.begin(), this->mValue.begin(), std::divides<double>());
     return *this;
 }
 
 void HistogramValue::applyFunction(std::function<double(double)> f) {
-    std::transform(std::execution::par, mValue.begin(), mValue.end(), mValue.begin(), f);
+    std::transform(std::execution::par_unseq, mValue.begin(), mValue.end(), mValue.begin(), f);
 }
 
 vector<double>& HistogramValue::getRawData() {
