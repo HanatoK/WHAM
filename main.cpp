@@ -24,7 +24,9 @@ using std::cout;
 using std::endl;
 using std::cerr;
 
-ReweightHistogram getPibias1D(const vector<Axis>& ax, const string& filename, const size_t dimension, const bool normalize = true) {
+ReweightHistogram getPibias1D(const vector<Axis>& ax, const string& filename,
+                              const vector<size_t>& cols, const size_t dimension,
+                              const bool normalize = true) {
     ReweightHistogram Pibias(ax);
     vector<double> cvs(dimension, 0);
     std::cout << "Reading " << filename << std::endl;
@@ -37,7 +39,7 @@ ReweightHistogram getPibias1D(const vector<Axis>& ax, const string& filename, co
         if (fields.empty()) continue;
         if (fields[0].compare("#") != 0) {
             for (size_t i = 0; i < dimension; ++i) {
-                cvs[i] = std::stod(fields[2*i+1]);
+                cvs[i] = std::stod(fields[cols[i]]);
             }
             Pibias.store(cvs, 1.0, 0);
         }
@@ -112,8 +114,13 @@ void wham(const Json::Value& obj) {
     vector<HistogramValue> potentials(N);
     // Determine line format of the colvars traj file
     for (unsigned i = 0; i < N; ++i) {
-        // Get biased distribution from colvars traj file
-        PiList[i] = getPibias1D(a1, windows[i]["filename"].asString(), dimension, true);
+        // The columns to read
+        const Json::Value& json_columns = windows[i]["columns"];
+        if (json_columns.size() != dimension) {
+            cerr << "Dimension mismatches with the number of columns when reading "
+                 << "window " << i << " !" << endl;
+            std::abort();
+        }
         // Determine the centers of bias potentials
         const Json::Value& centers = windows[i]["centers"];
         if (centers.size() != dimension) {
@@ -121,9 +128,14 @@ void wham(const Json::Value& obj) {
             std::abort();
         }
         vector<double> c_i(dimension);
+        vector<size_t> cols(dimension);
         for (unsigned j = 0; j < dimension; ++j) {
             c_i[j] = centers[j].asDouble();
+            cols[j] = json_columns[i].asUInt();
         }
+        // Get biased distribution from colvars traj file
+        PiList[i] = getPibias1D(a1, windows[i]["filename"].asString(),
+                                cols, dimension, true);
         const double k_i = windows[i]["spring constant"].asDouble();
         potentials[i] = genHarmonicPotential(a1, c_i, k_i);
     }
