@@ -131,7 +131,7 @@ void wham(const Json::Value& obj) {
         vector<size_t> cols(dimension);
         for (unsigned j = 0; j < dimension; ++j) {
             c_i[j] = centers[j].asDouble();
-            cols[j] = json_columns[i].asUInt();
+            cols[j] = json_columns[j].asUInt();
         }
         // Get biased distribution from colvars traj file
         PiList[i] = getPibias1D(a1, windows[i]["filename"].asString(),
@@ -157,6 +157,7 @@ void wham(const Json::Value& obj) {
     vector<double> total_counts(N, 0);
     for (unsigned j = 0; j < N; ++j) {
         total_counts[j] = double(PiList[j].getTotalCount());
+        cout << "Total count of window " << j << " : " << total_counts[j] << endl;
     }
 
     // WHAM iteration
@@ -215,6 +216,9 @@ void wham(const Json::Value& obj) {
     // Output PiList
     HistogramView hv_pi(PiList);
     hv_pi.writeToFile(string(output_prefix + "_Pibiased.dat"));
+//     for (size_t i = 0; i < PiList.size(); ++i) {
+//         PiList[i].writeToFile(string(output_prefix + "_" + std::to_string(i) + "_Pibiased.dat"));
+//     }
 
     fclose(outfile_F);
 }
